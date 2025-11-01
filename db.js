@@ -23,3 +23,13 @@ pool.connect()
   .then(() => console.log('✅ Connected to PostgreSQL!'))
   .catch(err => console.error('❌ Database connection failed:', err.message));
 
+const query = async (text) => {
+  try {
+    const result = await pool.query(text);
+    return result;
+  } catch (err) {
+    console.error(' Error executing query:', err);
+  }
+};
+
+export default query
