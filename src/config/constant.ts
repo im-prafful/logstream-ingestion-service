@@ -1,17 +1,19 @@
-export const errorMessage: Record<string, string[]> = {
-  'information': [
-    'User successfully logged in',
-    'Payment processed successfully',
-    'New user account created',
-    'API request completed successfully',
+import { ErrorMessageMap, ParsedDataMap } from "../types/constant.types";
+
+export const errorMessage: ErrorMessageMap = {
+  information: [
+    "User successfully logged in",
+    "Payment processed successfully",
+    "New user account created",
+    "API request completed successfully",
     'Service "auth-service" started successfully',
-    'New order placed',
-    'File upload completed',
-    'User profile updated',
-    'Email dispatch successful to user',
-    'Data export job finished'
+    "New order placed",
+    "File upload completed",
+    "User profile updated",
+    "Email dispatch successful to user",
+    "Data export job finished"
   ],
-  'warning': [
+  warning: [
     'Database query exceeded 500ms',
     'Deprecated API endpoint usage detected',
     'High memory usage detected (> 80%)',
@@ -23,7 +25,7 @@ export const errorMessage: Record<string, string[]> = {
     'Request rate limit approaching for user',
     'Unrecognized field "promo_code_2" in request body, ignoring'
   ],
-  'error': [
+  error: [
     'User login failed: invalid password',
     'Payment processing failed: insufficient funds',
     'Failed to connect to database: "logstream_db"',
@@ -35,7 +37,7 @@ export const errorMessage: Record<string, string[]> = {
     'Failed to write to S3 bucket: "logstream-prod-assets"',
     'Email dispatch to "user@example.com" failed, adding to dead-letter queue'
   ],
-  'debug': [
+  debug: [
     'Cache key "sess:xyz" set with TTL 3600',
     'Cache key "user:123" found in store',
     'Entering function "calculate_shipping_cost"',
@@ -50,26 +52,26 @@ export const errorMessage: Record<string, string[]> = {
 };
 
 export const sourceData: string[] = [
-  'auth-service',
-  'payment-service',
-  'api-backend',
-  'frontend-web',
-  'redis-worker',
-  'db-poller',
-  'ml-clustering-pipeline',
-  'ml-anomaly-pipeline',
-  'email-service',
-  'user-profile-service',
-  'search-api',
-  'inventory-manager',
-  'shipping-service',
-  'notification-queue',
-  'data-exporter',
-  'admin-dashboard',
-  'mobile-gateway',
-  'cron-job-runner',
-  's3-bucket-listener',
-  'kafka-consumer'
+  "auth-service",
+  "payment-service",
+  "api-backend",
+  "frontend-web",
+  "redis-worker",
+  "db-poller",
+  "ml-clustering-pipeline",
+  "ml-anomaly-pipeline",
+  "email-service",
+  "user-profile-service",
+  "search-api",
+  "inventory-manager",
+  "shipping-service",
+  "notification-queue",
+  "data-exporter",
+  "admin-dashboard",
+  "mobile-gateway",
+  "cron-job-runner",
+  "s3-bucket-listener",
+  "kafka-consumer"
 ];
 
 export const parsedDataList: Record<string, string[]> = {
