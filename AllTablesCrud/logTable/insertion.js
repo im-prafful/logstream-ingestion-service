@@ -1,9 +1,9 @@
-import query from "./db.js";
-import { insertFnc } from "./populator.js";
+import query from "../../db.js";
+import {insertFnc} from "../../populator.js"
 
 const insertData = async () => {
   try {
-    // get api_key from application table
+    // get app_id from application table
     const result = await query(`SELECT app_id FROM applications LIMIT 1;`);
     if (result.rows.length === 0) {
       throw new Error("No API key found in application table");
@@ -33,4 +33,4 @@ const insertData = async () => {
 
 setInterval(() => {
   insertData();
-}, 3000);
+}, 5000);
