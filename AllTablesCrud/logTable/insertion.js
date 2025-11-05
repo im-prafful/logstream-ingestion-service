@@ -3,8 +3,9 @@ import {
   ReceiveMessageCommand,
   DeleteMessageBatchCommand,
   SQSClient,
+  SendMessageCommand,
 } from "@aws-sdk/client-sqs";
-
+import fs from 'fs'
 
 const sqsClient = new SQSClient({
   region: process.env.AWS_REGION,
@@ -16,12 +17,11 @@ const sqsClient = new SQSClient({
 
 const QUEUE_URL = 'https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion'
 
-let dbLogs = []//empty array to store the logs fetched from  SQS
-
+let dbLogs = []//empty array to store the logs fetched from  SQS
+let failedLogs = []
 
 //---------FETCH FROM SQS-----------------
 const fetchData = async () => {
-  //wrapping (insert in db + delete from sqs in one logical transaction to minimize duplicacy errors)
   console.log("--- Listening for messages from SQS...");
 
   while (true) {
@@ -29,20 +29,34 @@ const fetchData = async () => {
       const command = new ReceiveMessageCommand({
         QueueUrl: QUEUE_URL,
         MaxNumberOfMessages: 5,
-        VisibilityTimeout: 30
+        VisibilityTimeout: 30,
       });
 
       const response = await sqsClient.send(command);
       const messages = response.Messages || [];
 
-      if (messages.length > 0) {
-        console.log(`[OK] Received ${messages.length} messages`);
-        //insert mssgs in temporary storage
-        for (const msg of messages) {
-          dbLogs.push(JSON.parse(msg.Body))
-        }
+      if (messages.length === 0) {
+        console.log("No new messages. Stopping listener...");
+        break;
+      }
 
-        // Delete processed messages
+      console.log(`[OK] Received ${messages.length} messages`);
+
+      //retreive messages
+      for (const msg of messages) {
+        try {
+          dbLogs.push(JSON.parse(msg.Body));
+        } catch (parseErr) {
+          console.error(`[PARSE FAILED] Message ID ${msg.MessageId}: ${parseErr.message}`);
+          failedLogs.push({
+            error: `Parse Failed: ${parseErr.message}`,
+            data: msg.Body,
+          });
+        }
+      }
+
+      // Only delete if messages exist
+      if (messages.length > 0) {
         const deleteParams = {
           QueueUrl: QUEUE_URL,
           Entries: messages.map((msg) => ({
@@ -54,16 +68,13 @@ const fetchData = async () => {
         const deleteCommand = new DeleteMessageBatchCommand(deleteParams);
         await sqsClient.send(deleteCommand);
         console.log(`[DEL] Deleted ${messages.length} messages from queue`);
-      } else {
-        console.log(" No new messages. Stopping listener...");
-        break;
       }
+
     } catch (err) {
       console.error("[ERROR] Error receiving messages:", err.message);
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // retry delay
     }
   }
-}
+};
 
 
 //--------INSERT INTO POSTGRES----------
@@ -76,12 +87,12 @@ const insertData = async () => {
     }
     const app_id = result.rows[0].app_id;
 
-    if(dbLogs.length===0){
+    if (dbLogs.length === 0) {
       return 0
     }
 
-    for (const log of dbLogs) { 
-      try { 
+    for (const log of dbLogs) {
+      try {
         await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, pattern_id)
             VALUES(
             '${app_id}',
@@ -92,37 +103,79 @@ const insertData = async () => {
             NULL
             )
             `)
-            console.log(`[INSERT SUCCESSFULL]`)
+        console.log(`[INSERT SUCCESSFULL]`)
       } catch (insertErr) {
-        
+        failedLogs.push({
+              error: `INSERT Failed: ${insertErr.message}`,
+              data: log // Store the raw body of the failed message
+            });
         console.error(`[INSERT FAILED] Failed to insert log: ${insertErr.message}. Data: ${JSON.stringify(log)}`);
       }
     }
     // Clear the processed logs *only after* the insertion loop completes successfully
-    dbLogs = []; 
+    dbLogs = [];
 
   } catch (err) {
     console.error("[ERROR] Error in insertData function (outside loop, possibly DB connect or app_id fetch):", err.message);
   }
 }
 
+
+const handleFailedLogs=async()=>{
+
+  if(failedLogs.length===0)return 0
+
+  // get app_id from application table
+    const result = await query(`SELECT app_id from applications LIMIT 1;`)
+    if (result.rows.length === 0) {
+      throw new Error("No API key found in application table");
+    }
+    const app_id = result.rows[0].app_id;
+
+  //retry failed logs
+  for(const log of failedLogs){
+    try{
+      await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, pattern_id)
+            VALUES(
+            '${app_id}',
+            '${log.data.level}',
+            '${log.data.mssg}',
+            '${log.data.sourceMssg}',
+            '${log.data.parsedData}',
+            NULL
+            )
+            `)
+        console.log(`[INSERT SUCCESSFULL AFER RETRYING]`)
+    }catch(err){
+      console.log(`[ERROR]  INSERT failed even after retrying....`)
+    }
+  }
+  failedLogs=[]//reinitialize after processing...
+  return 1
+}
+
+
 (async function runPipeline() {
   while (true) {
     try {
-      //console.log("Fetching + inserting logs...");
+
       await fetchData();
-      let x=await insertData();
-      if(x===0){
-         console.log(`Queue empty.....exiting`)  
-         process.exit(0)
+      let x = await insertData();
+      if (x === 0) {
+        console.log(`Queue empty.....exiting`)
+        //process.exit(0)
       }
 
+      
+      const y=await handleFailedLogs()
+      if(y===0)console.log(`No failed logs to preocess...`)
+      else if(y===1)console.log(`All failed logs are processed.... `)
+
       console.log("Cycle complete. Waiting 10s...");
-      await new Promise((resolve) => setTimeout(resolve, 10000));//each cycle waits 10s before starting the next
+      await new Promise((resolve) => setTimeout(resolve, 10000));//each cycle waits 10s before starting the next cycle
     } catch (err) {
       console.error("Pipeline error:", err.message);
       await new Promise((resolve) => setTimeout(resolve, 5000)); // wait before retry
     }
   }
 })();
-
