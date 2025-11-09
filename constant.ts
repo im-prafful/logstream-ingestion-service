@@ -140,22 +140,20 @@ export const parsedDataList: Record<string, string[]> = {
   '{"order_id": "ord-3322kl", "user_id": "u-320", "amount_cents": 2599, "currency": "INR", "gateway": "razorpay"}',
   '{"order_id": "ord-8841aa", "user_id": "u-890", "amount_cents": 8999, "currency": "USD", "gateway": "stripe"}',
   '{"order_id": "ord-1902pq", "user_id": "u-128", "amount_cents": 15000, "currency": "GBP", "gateway": "adyen"}',
-  '{"order_id": "ord-2201zz", "user_id": "u-231", "amount_cents": 7500, "currency": "USD", "gateway": "stripe", "status": "success"}',
-  '{"order_id": "ord-4410ab", "user_id": "u-650", "amount_cents": 2400, "currency": "EUR", "gateway": "paypal", "status": "pending"}',
-  '{"order_id": "ord-5512xx", "user_id": "u-982", "amount_cents": 9900, "currency": "INR", "gateway": "razorpay", "status": "failed"}',
-  '{"order_id": "ord-6709mn", "user_id": "u-318", "amount_cents": 10999, "currency": "USD", "gateway": "adyen", "status": "success"}',
-  '{"order_id": "ord-7123qp", "user_id": "u-729", "amount_cents": 3000, "currency": "GBP", "gateway": "paypal", "status": "refunded"}',
-  '{"order_id": "ord-8922ty", "user_id": "u-999", "amount_cents": 12000, "currency": "USD", "gateway": "stripe", "status": "chargeback"}',
-  '{"order_id": "ord-9110kl", "user_id": "u-457", "amount_cents": 5999, "currency": "EUR", "gateway": "adyen", "status": "success"}',
-  '{"order_id": "ord-9922lo", "user_id": "u-642", "amount_cents": 4550, "currency": "USD", "gateway": "paypal", "status": "success"}',
-  '{"order_id": "ord-1044cx", "user_id": "u-700", "amount_cents": 7200, "currency": "INR", "gateway": "razorpay", "status": "pending"}',
-  '{"order_id": "ord-1190df", "user_id": "u-233", "amount_cents": 8400, "currency": "GBP", "gateway": "stripe", "status": "success"}'
+  '{"order_id": "ord-2201zz", "user_id": "u-231", "amount_cents": 7500, "currency": "USD", "gateway": "stripe"}',
+  '{"order_id": "ord-4410ab", "user_id": "u-650", "amount_cents": 2400, "currency": "EUR", "gateway": "paypal"}',
+  '{"order_id": "ord-5512xx", "user_id": "u-982", "amount_cents": 9900, "currency": "INR", "gateway": "razorpay"}',
+  '{"order_id": "ord-6709mn", "user_id": "u-318", "amount_cents": 10999, "currency": "USD", "gateway": "adyen"}',
+  '{"order_id": "ord-7123qp", "user_id": "u-729", "amount_cents": 3000, "currency": "GBP", "gateway": "paypal"}',
+  '{"order_id": "ord-8922ty", "user_id": "u-999", "amount_cents": 12000, "currency": "USD", "gateway": "stripe"}',
+  '{"order_id": "ord-9110kl", "user_id": "u-457", "amount_cents": 5999, "currency": "EUR", "gateway": "adyen"}',
+  '{"order_id": "ord-9922lo", "user_id": "u-642", "amount_cents": 4550, "currency": "USD", "gateway": "paypal"}',
+  '{"order_id": "ord-1044cx", "user_id": "u-700", "amount_cents": 7200, "currency": "INR", "gateway": "razorpay"',
+  '{"order_id": "ord-1190df", "user_id": "u-233", "amount_cents": 8400, "currency": "GBP", "gateway": "stripe"}'
 ],
 
 
  'api-backend': [
-  // existing 5 unchanged
-  '{"endpoint": "/v1/orders", "method": "POST", "status_code": 201, "response_time_ms": 124}',
   '{"endpoint": "/v1/users", "method": "GET", "status_code": 200, "response_time_ms": 98}',
   '{"endpoint": "/v1/auth/login", "method": "POST", "status_code": 401, "response_time_ms": 87}',
   '{"endpoint": "/v1/products", "method": "GET", "status_code": 200, "response_time_ms": 145}',
@@ -192,14 +190,11 @@ export const parsedDataList: Record<string, string[]> = {
 ],
 
 'redis-worker': [
-  // existing 5 unchanged
   '{"queue": "email_dispatch", "job_id": "job_223x", "status": "completed", "duration_ms": 340}',
   '{"queue": "cache_warmup", "job_id": "job_778c", "status": "failed", "retries": 2}',
   '{"queue": "order_processing", "job_id": "job_556b", "status": "running", "progress": "70%"}',
   '{"queue": "report_generator", "job_id": "job_119z", "status": "completed", "duration_ms": 1120}',
   '{"queue": "notification_sender", "job_id": "job_893q", "status": "queued"}',
-
-  // new 10 entries
   '{"queue": "email_dispatch", "job_id": "job_224x", "status": "running", "progress": "40%"}',
   '{"queue": "cache_warmup", "job_id": "job_779c", "status": "completed", "duration_ms": 290}',
   '{"queue": "order_processing", "job_id": "job_557b", "status": "failed", "retries": 3}',
