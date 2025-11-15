@@ -5,20 +5,21 @@ import {
   SQSClient,
   SendMessageCommand,
 } from "@aws-sdk/client-sqs";
-import fs from 'fs'
+import fs from "fs";
 
 const sqsClient = new SQSClient({
   region: process.env.AWS_REGION,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    accessKeyId: process.env.AWS_ACCESS_KEY,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
   },
 });
 
-const QUEUE_URL = 'https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion'
+const QUEUE_URL =
+  "https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion";
 
-let dbLogs = []//empty array to store the logs fetched from  SQS
-let failedLogs = []
+let dbLogs = []; //empty array to store the logs fetched from  SQS
+let failedLogs = [];
 
 //---------FETCH FROM SQS-----------------
 const fetchData = async () => {
@@ -47,7 +48,9 @@ const fetchData = async () => {
         try {
           dbLogs.push(JSON.parse(msg.Body));
         } catch (parseErr) {
-          console.error(`[PARSE FAILED] Message ID ${msg.MessageId}: ${parseErr.message}`);
+          console.error(
+            `[PARSE FAILED] Message ID ${msg.MessageId}: ${parseErr.message}`
+          );
           failedLogs.push({
             error: `Parse Failed: ${parseErr.message}`,
             data: msg.Body,
@@ -69,31 +72,29 @@ const fetchData = async () => {
         await sqsClient.send(deleteCommand);
         console.log(`[DEL] Deleted ${messages.length} messages from queue`);
       }
-
     } catch (err) {
       console.error("[ERROR] Error receiving messages:", err.message);
     }
   }
 };
 
-
 //--------INSERT INTO POSTGRES----------
 const insertData = async () => {
   try {
     // get app_id from application table
-    const result = await query(`SELECT app_id from applications LIMIT 1;`)
+    const result = await query(`SELECT app_id from applications LIMIT 1;`);
     if (result.rows.length === 0) {
       throw new Error("No API key found in application table");
     }
     const app_id = result.rows[0].app_id;
 
     if (dbLogs.length === 0) {
-      return 0
+      return 0;
     }
 
     for (const log of dbLogs) {
       try {
-        await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, pattern_id)
+        await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, cluster_id)
             VALUES(
             '${app_id}',
             '${log.level}',
@@ -102,40 +103,44 @@ const insertData = async () => {
             '${log.parsedData}',
             NULL
             )
-            `)
-        console.log(`[INSERT SUCCESSFULL]`)
+            `);
+        console.log(`[INSERT SUCCESSFULL]`);
       } catch (insertErr) {
         failedLogs.push({
-              error: `INSERT Failed: ${insertErr.message}`,
-              data: log // Store the raw body of the failed message
-            });
-        console.error(`[INSERT FAILED] Failed to insert log: ${insertErr.message}. Data: ${JSON.stringify(log)}`);
+          error: `INSERT Failed: ${insertErr.message}`,
+          data: log, // Store the raw body of the failed message
+        });
+        console.error(
+          `[INSERT FAILED] Failed to insert log: ${
+            insertErr.message
+          }. Data: ${JSON.stringify(log)}`
+        );
       }
     }
     // Clear the processed logs *only after* the insertion loop completes successfully
     dbLogs = [];
-
   } catch (err) {
-    console.error("[ERROR] Error in insertData function (outside loop, possibly DB connect or app_id fetch):", err.message);
+    console.error(
+      "[ERROR] Error in insertData function (outside loop, possibly DB connect or app_id fetch):",
+      err.message
+    );
   }
-}
+};
 
-
-const handleFailedLogs=async()=>{
-
-  if(failedLogs.length===0)return 0
+const handleFailedLogs = async () => {
+  if (failedLogs.length === 0) return 0;
 
   // get app_id from application table
-    const result = await query(`SELECT app_id from applications LIMIT 1;`)
-    if (result.rows.length === 0) {
-      throw new Error("No API key found in application table");
-    }
-    const app_id = result.rows[0].app_id;
+  const result = await query(`SELECT app_id from applications LIMIT 1;`);
+  if (result.rows.length === 0) {
+    throw new Error("No API key found in application table");
+  }
+  const app_id = result.rows[0].app_id;
 
   //retry failed logs
-  for(const log of failedLogs){
-    try{
-      await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, pattern_id)
+  for (const log of failedLogs) {
+    try {
+      await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, cluster_id)
             VALUES(
             '${app_id}',
             '${log.data.level}',
@@ -144,35 +149,32 @@ const handleFailedLogs=async()=>{
             '${log.data.parsedData}',
             NULL
             )
-            `)
-        console.log(`[INSERT SUCCESSFULL AFER RETRYING]`)
-    }catch(err){
-      console.log(`[ERROR]  INSERT failed even after retrying....`)
+            `);
+      console.log(`[INSERT SUCCESSFULL AFER RETRYING]`);
+    } catch (err) {
+      console.log(`[ERROR]  INSERT failed even after retrying....`);
     }
   }
-  failedLogs=[]//reinitialize after processing...
-  return 1
-}
-
+  failedLogs = []; //reinitialize after processing...
+  return 1;
+};
 
 (async function runPipeline() {
   while (true) {
     try {
-
       await fetchData();
       let x = await insertData();
       if (x === 0) {
-        console.log(`Queue empty.....exiting`)
+        console.log(`Queue empty.....exiting`);
         //process.exit(0)
       }
 
-      
-      const y=await handleFailedLogs()
-      if(y===0)console.log(`No failed logs to preocess...`)
-      else if(y===1)console.log(`All failed logs are processed.... `)
+      const y = await handleFailedLogs();
+      if (y === 0) console.log(`No failed logs to preocess...`);
+      else if (y === 1) console.log(`All failed logs are processed.... `);
 
       console.log("Cycle complete. Waiting 10s...");
-      await new Promise((resolve) => setTimeout(resolve, 10000));//each cycle waits 10s before starting the next cycle
+      await new Promise((resolve) => setTimeout(resolve, 10000)); //each cycle waits 10s before starting the next cycle
     } catch (err) {
       console.error("Pipeline error:", err.message);
       await new Promise((resolve) => setTimeout(resolve, 5000)); // wait before retry
