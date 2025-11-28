@@ -1,7 +1,7 @@
 {
   "name": "demo",
   "version": "1.0.0",
-  "description": "",
+  "description": "LogStream - Ingestion Service 📥",
   "license": "ISC",
   "author": "",
   "type": "module",
@@ -12,6 +12,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.927.0",
     "@aws-sdk/client-sqs": "^3.922.0",
+    "@vendia/serverless-express": "^4.12.6",
     "body-parser": "^2.2.0",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
@@ -19,5 +20,14 @@
     "nodemon": "^3.1.10",
     "pg": "^8.16.3",
     "typescript": "^5.9.3"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/im-prafful/logstream-ingestion-service.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/im-prafful/logstream-ingestion-service/issues"
+  },
+  "homepage": "https://github.com/im-prafful/logstream-ingestion-service#readme"
 }

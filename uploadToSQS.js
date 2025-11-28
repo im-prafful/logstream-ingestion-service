@@ -18,7 +18,7 @@ const QUEUE_URL =
   "https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion";
 
 //--------logic to push inside SQS----------
-async function pushToSQS() {
+export async function pushToSQS() {
   try {
     const log = insertFnc();
 
@@ -38,6 +38,3 @@ async function pushToSQS() {
   }
 }
 
-setInterval(() => {
-  pushToSQS();
-}, 3000);

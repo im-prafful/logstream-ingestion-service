@@ -1,11 +1,11 @@
-import query from "../../db.js";
+import query from "./db.js";
 import {
   ReceiveMessageCommand,
   DeleteMessageBatchCommand,
   SQSClient,
   SendMessageCommand,
 } from "@aws-sdk/client-sqs";
-import fs from "fs";
+
 
 const sqsClient = new SQSClient({
   region: process.env.AWS_REGION,
@@ -21,8 +21,10 @@ const QUEUE_URL =
 let dbLogs = []; //empty array to store the logs fetched from  SQS
 let failedLogs = [];
 
+
+
 //---------FETCH FROM SQS-----------------
-const fetchData = async () => {
+export const fetchData = async () => {
   console.log("--- Listening for messages from SQS...");
 
   while (true) {
@@ -79,7 +81,7 @@ const fetchData = async () => {
 };
 
 //--------INSERT INTO POSTGRES----------
-const insertData = async () => {
+export const insertData = async () => {
   try {
     // get app_id from application table
     const result = await query(`SELECT app_id from applications LIMIT 1;`);
@@ -127,7 +129,7 @@ const insertData = async () => {
   }
 };
 
-const handleFailedLogs = async () => {
+export const handleFailedLogs = async () => {
   if (failedLogs.length === 0) return 0;
 
   // get app_id from application table
@@ -159,25 +161,4 @@ const handleFailedLogs = async () => {
   return 1;
 };
 
-(async function runPipeline() {
-  while (true) {
-    try {
-      await fetchData();
-      let x = await insertData();
-      if (x === 0) {
-        console.log(`Queue empty.....exiting`);
-        //process.exit(0)
-      }
 
-      const y = await handleFailedLogs();
-      if (y === 0) console.log(`No failed logs to preocess...`);
-      else if (y === 1) console.log(`All failed logs are processed.... `);
-
-      console.log("Cycle complete. Waiting 10s...");
-      await new Promise((resolve) => setTimeout(resolve, 10000)); //each cycle waits 10s before starting the next cycle
-    } catch (err) {
-      console.error("Pipeline error:", err.message);
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // wait before retry
-    }
-  }
-})();
