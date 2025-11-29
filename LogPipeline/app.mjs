@@ -1,5 +1,5 @@
 // LogPipeline/app.js (Runs all logic in a single cycle)
-import query from "../db.js"; // Your existing db.js
+import query from "./db.js"; // Your existing db.js
 import {
     ReceiveMessageCommand,
     DeleteMessageBatchCommand,
