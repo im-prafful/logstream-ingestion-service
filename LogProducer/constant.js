@@ -1,4 +1,4 @@
-export const errorMessage: Record<string, string[]> = {
+export const errorMessage = {
   information: [
     "User successfully logged in",
     "Payment processed successfully",
@@ -120,7 +120,7 @@ export const errorMessage: Record<string, string[]> = {
   ]
 };
 
-export const sourceData: string[] = [
+export const sourceData = [
   "auth-service",
   "payment-service",
   "api-backend",
@@ -143,7 +143,7 @@ export const sourceData: string[] = [
   "kafka-consumer"
 ];
 
-export const parsedDataList: Record<string, string[]> = {
+export const parsedDataList= {
   "auth-service": [
     "{\"event\": \"user_login\", \"user_id\": \"u-1024\", \"method\": \"oauth_google\", \"ip\": \"192.168.0.45\"}",
     "{\"event\": \"password_reset\", \"user_id\": \"u-998\", \"status\": \"success\", \"timestamp\": \"2025-11-01T10:24:32Z\"}",

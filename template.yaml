@@ -1,0 +1,95 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Log Ingestion Pipeline using SAM, SQS, and Postgres (Scheduled Polling Model).
+
+Parameters:
+  # --- DB Parameters (Non-interactive) ---
+  PostgresHost:
+    Type: String
+    Default: "logstream-db.czegikcsabng.ap-south-1.rds.amazonaws.com"
+  PostgresDatabase:
+    Type: String
+    Default: "Logstream_DB"
+  PostgresUser:
+    Type: String
+    Default: "masterUser"
+  PostgresPassword:
+    Type: String
+    # Removed NoEcho: true to prevent interactive prompt, allowing default to be used.
+    Default: "Admin$1234" 
+  PostgresPort:
+    Type: Number
+    Default: 5432
+  
+  # --- SQS Parameters (Existing Queue) ---
+  ExistingQueueUrl:
+    Type: String
+    Description: The URL of the SQS queue created manually in the console.
+    Default: "https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion"
+    
+  ExistingQueueArn:
+    Type: String
+    Description: The ARN of the SQS queue for IAM permissions.
+    Default: "arn:aws:sqs:ap-south-1:031415497613:SQS_LogIngestion" 
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    MemorySize: 256
+    Timeout: 60 # Maximum cycle time for polling/insertion
+
+Resources:
+  # --- 1. Log Producer Function (Sends to SQS) ---
+  LogProducerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: LogProducer/
+      Handler: app.handler
+      Policies:
+        # Permission to send messages to SQS (using the ARN parameter)
+        - Statement:
+            Effect: Allow
+            Action: 'sqs:SendMessage'
+            Resource: !Ref ExistingQueueArn 
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref ExistingQueueUrl 
+
+  # --- 2. Log Pipeline/Consumer Function (Polls SQS & Inserts to DB) ---
+  LogPipelineFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: LogPipeline/
+      Handler: app.handler
+      
+      # VpcConfig: Required for connecting to the private RDS instance
+      VpcConfig:
+        SecurityGroupIds:
+          - sg-019f671390240930c
+        SubnetIds:
+          - subnet-0a11c12998ff540e1
+          - subnet-065a73345490e0ee8
+          
+      # Policies: Permissions required for SQS polling/deletion and DB access
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action:
+              - 'sqs:ReceiveMessage'
+              - 'sqs:DeleteMessageBatch'
+              - 'sqs:GetQueueAttributes'
+            Resource: !Ref ExistingQueueArn
+        - Statement:
+            Effect: Allow
+            Action:
+              - 'rds:Connect'
+            Resource: '*'
+
+      Environment:
+        Variables:
+          SQS_QUEUE_URL: !Ref ExistingQueueUrl
+          DB_HOST: !Ref PostgresHost
+          DB_PORT: !Ref PostgresPort
+          DB_NAME: !Ref PostgresDatabase
+          DB_USER: !Ref PostgresUser
+          DB_PASSWORD: !Ref PostgresPassword

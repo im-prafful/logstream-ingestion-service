@@ -1,4 +1,4 @@
-import { errorMessage, parsedDataList, sourceData } from "./constant.ts";
+import { errorMessage, parsedDataList, sourceData } from "./constant.js";
 
 export const insertFnc = () => {
   const levelList = ["information", "warning", "error", "debug"];

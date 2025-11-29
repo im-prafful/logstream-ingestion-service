@@ -1,0 +1,5 @@
+{
+  "source": "aws.events",
+  "detail-type": "Scheduled Event",
+  "time": "2025-11-29T13:10:00Z"
+}
