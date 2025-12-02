@@ -1,5 +1,5 @@
 # Dependencies
 /node_modules
-
+/.aws-sam
 # Environment
 .env
