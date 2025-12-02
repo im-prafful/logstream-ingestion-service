@@ -1,21 +1,18 @@
 // LogPipeline/app.js (Runs all logic in a single cycle)
-import query from "./db.js"; // Your existing db.js
+import query from "./db.mjs"; // Your existing db.js
 import {
     ReceiveMessageCommand,
     DeleteMessageBatchCommand,
     SQSClient,
 } from "@aws-sdk/client-sqs";
 
-// --- SQS Setup ---
-// WARNING: Lambda execution roles should be used instead of hardcoded environment 
-// variables for credentials. This uses environment variables as you provided, 
-// but credentials will be provided by SAM/AWS Role.
+
 const sqsClient = new SQSClient({});
 
-// URL comes from the SAM template's Environment Variables
+// URL comes from the SAM template.yaml Environment Variables
 const QUEUE_URL = process.env.SQS_QUEUE_URL;
 
-// --- STATE MANAGEMENT ---
+
 // These arrays will be instantiated on every cold start of the Lambda
 let dbLogs = [];
 let failedLogs = [];
@@ -91,7 +88,7 @@ const deleteMessages = async (messagesToDelete) => {
 
 
 // -------- 3. INSERT INTO POSTGRES (using string concatenation) ----------
-const insertData = async (app_id) => {
+const insertData = async (app_id,c) => {
     console.log("--- Starting database insertion...");
     if (dbLogs.length === 0) return 0;
 
@@ -108,7 +105,8 @@ const insertData = async (app_id) => {
                 NULL
                 )
                 `);
-                            console.log(`[INSERT SUCCESSFULL]`);
+                c=c+1//increment successfull insertion count
+             console.log(`[INSERT SUCCESSFULL]`);
         } catch (insertErr) {
             failedLogs.push({
                 error: `INSERT Failed: ${insertErr.message}`,
@@ -118,7 +116,7 @@ const insertData = async (app_id) => {
         }
     }
     dbLogs = []; // Clear the processed logs
-    return 1;
+    return c;
 };
 
 // -------- 4. HANDLE FAILED LOGS (Retry using string concatenation) ----------
@@ -165,7 +163,7 @@ export const handler = async (event) => {
         const messagesToClear = await fetchData();
 
         // 3. Insert Logs into Postgres
-        await insertData(app_id);
+        let x=await insertData(app_id,0);
 
         // 4. Retry failed logs
         //await handleFailedLogs(app_id);
@@ -178,6 +176,7 @@ export const handler = async (event) => {
             body: JSON.stringify({
                 status: "Pipeline Cycle Complete",
                 logsFetched: messagesToClear.length,
+                logsInserted:x
             }),
         };
     } catch (criticalErr) {
