@@ -4,11 +4,10 @@ version = 0.1
 stack_name = "LogstreamIngestion"
 resolve_s3 = true
 s3_prefix = "LogstreamIngestion"
-region = "ap-south-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = true
-parameter_overrides = "PostgresHost=\"logstream-db.czegikcsabng.ap-south-1.rds.amazonaws.com\" PostgresDatabase=\"Logstream_DB\" PostgresUser=\"masterUser\" PostgresPassword=\"Admin$1234\" PostgresPort=\"5432\" ExistingQueueUrl=\"https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion\" ExistingQueueArn=\"arn:aws:sqs:ap-south-1:031415497613:SQS_LogIngestion\""
+parameter_overrides = "PostgresHost=\"logstream-2-db.czegikcsabng.ap-south-1.rds.amazonaws.com\" PostgresDatabase=\"LogStream_2.0\" PostgresUser=\"masterUser\" PostgresPassword=\"Admin$1234\" PostgresPort=\"5432\" ExistingQueueUrl=\"https://sqs.ap-south-1.amazonaws.com/031415497613/SQS_LogIngestion\" ExistingQueueArn=\"arn:aws:sqs:ap-south-1:031415497613:SQS_LogIngestion\""
 image_repositories = []
 
 [default.global.parameters]
