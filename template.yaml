@@ -6,10 +6,10 @@ Parameters:
   # --- DB Parameters (Non-interactive) ---
   PostgresHost:
     Type: String
-    Default: "logstream-db.czegikcsabng.ap-south-1.rds.amazonaws.com"
+    Default: "logstream-2-db.czegikcsabng.ap-south-1.rds.amazonaws.com"
   PostgresDatabase:
     Type: String
-    Default: "Logstream_DB"
+    Default: "LogStream_2.0"
   PostgresUser:
     Type: String
     Default: "masterUser"
@@ -62,13 +62,6 @@ Resources:
       CodeUri: LogPipeline/
       Handler: app.handler
       
-      # VpcConfig: Required for connecting to the private RDS instance
-      VpcConfig:
-        SecurityGroupIds:
-          - sg-019f671390240930c
-        SubnetIds:
-          - subnet-0a11c12998ff540e1
-          - subnet-065a73345490e0ee8
           
       # Policies: Permissions required for SQS polling/deletion and DB access
       Policies:
