@@ -70,6 +70,7 @@ Resources:
             Action:
               - 'sqs:ReceiveMessage'
               - 'sqs:DeleteMessageBatch'
+              - 'sqs:DeleteMessage'
               - 'sqs:GetQueueAttributes'
             Resource: !Ref ExistingQueueArn
         - Statement:
