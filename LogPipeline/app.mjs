@@ -25,7 +25,7 @@ const fetchData = async () => {
     try {
         const command = new ReceiveMessageCommand({
             QueueUrl: QUEUE_URL,
-            MaxNumberOfMessages: 50, 
+            MaxNumberOfMessages: 10, 
             VisibilityTimeout: 60,
         });
 
@@ -127,7 +127,7 @@ const handleFailedLogs = async (app_id) => {
     console.log(`--- Inserting  ${failedLogs.length} into  failed logs table...`);
 
     //BULK INSERT TO POSTGRES TABLE
-    
+
     failedLogs = []; // reinitialize after processing
     return temp;
 };
