@@ -25,7 +25,7 @@ const fetchData = async () => {
     try {
         const command = new ReceiveMessageCommand({
             QueueUrl: QUEUE_URL,
-            MaxNumberOfMessages: 10, 
+            MaxNumberOfMessages: 50, 
             VisibilityTimeout: 60,
         });
 
@@ -122,27 +122,14 @@ const insertData = async (app_id,c) => {
 // -------- 4. HANDLE FAILED LOGS (Retry using string concatenation) ----------
 const handleFailedLogs = async (app_id) => {
     if (failedLogs.length === 0) return 0;
-    console.log(`--- Starting retry for ${failedLogs.length} failed logs...`);
 
-    for (const log of failedLogs) {
-        try {
-            await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, cluster_id)
-            VALUES(
-            '${app_id}',
-            '${log.data.level}',
-            '${log.data.mssg}',
-            '${log.data.sourceMssg}',
-            '${log.data.parsedData}',
-            NULL
-            )
-            `);
-            console.log(`[INSERT SUCCESSFULL AFER RETRYING]`);
-        } catch (err) {
-            console.log(`[ERROR] INSERT failed even after retrying. Dropping log.`);
-        }
-    }
+    let temp=failedLogs.length
+    console.log(`--- Inserting  ${failedLogs.length} into  failed logs table...`);
+
+    //BULK INSERT TO POSTGRES TABLE
+    
     failedLogs = []; // reinitialize after processing
-    return 1;
+    return temp;
 };
 
 
@@ -166,7 +153,8 @@ export const handler = async (event) => {
         let x=await insertData(app_id,0);
 
         // 4. Retry failed logs
-        //await handleFailedLogs(app_id);
+        //let y=await handleFailedLogs(app_id);
+        
 
         // 5. Delete ALL processed messages (original logic)
         await deleteMessages(messagesToClear);
@@ -176,7 +164,8 @@ export const handler = async (event) => {
             body: JSON.stringify({
                 status: "Pipeline Cycle Complete",
                 logsFetched: messagesToClear.length,
-                logsInserted:x
+                logsInserted:x,
+                //failedLogs:y
             }),
         };
     } catch (criticalErr) {
