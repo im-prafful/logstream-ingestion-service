@@ -25,7 +25,7 @@ const fetchData = async () => {
     try {
         const command = new ReceiveMessageCommand({
             QueueUrl: QUEUE_URL,
-            MaxNumberOfMessages: 10, 
+            MaxNumberOfMessages: 10,
             VisibilityTimeout: 60,
         });
 
@@ -88,13 +88,13 @@ const deleteMessages = async (messagesToDelete) => {
 
 
 // -------- 3. INSERT INTO POSTGRES (using string concatenation) ----------
-const insertData = async (app_id,c) => {
+const insertData = async (app_id, c) => {
     console.log("--- Starting database insertion...");
     if (dbLogs.length === 0) return 0;
 
     for (const log of dbLogs) {
         try {
- 
+
             await query(`INSERT INTO logs (app_id, level, message, source, parsed_data, cluster_id)
                 VALUES(
                 '${app_id}',
@@ -105,8 +105,8 @@ const insertData = async (app_id,c) => {
                 NULL
                 )
                 `);
-                c=c+1//increment successfull insertion count
-             console.log(`[INSERT SUCCESSFULL]`);
+            c = c + 1//increment successfull insertion count
+            console.log(`[INSERT SUCCESSFULL]`);
         } catch (insertErr) {
             failedLogs.push({
                 error: `INSERT Failed: ${insertErr.message}`,
@@ -119,17 +119,50 @@ const insertData = async (app_id,c) => {
     return c;
 };
 
-// -------- 4. HANDLE FAILED LOGS (Retry using string concatenation) ----------
-const handleFailedLogs = async (app_id) => {
+const handleFailedLogs = async (app_id, failedLogs) => {
     if (failedLogs.length === 0) return 0;
 
-    let temp=failedLogs.length
-    console.log(`--- Inserting  ${failedLogs.length} into  failed logs table...`);
+    let temp = failedLogs.length;
+    console.log(`--- Inserting ${failedLogs.length} into failed logs table...`);
 
-    //BULK INSERT TO POSTGRES TABLE
+    try {
+        let insertQuery = "";
 
-    failedLogs = []; // reinitialize after processing
+        for (let i = 0; i < failedLogs.length; i++) {
+            let log = failedLogs[i];
+
+            insertQuery += `(
+                '${app_id}',
+                '${log.data.level}',
+                '${log.data.mssg}',
+                '${log.data.sourceMssg}',
+                '${log.data.parsedData}',
+                NULL
+            )`;
+
+            // add comma if NOT last element
+            if (i !== failedLogs.length - 1) {
+                insertQuery += ",";
+            }
+        }
+
+        await query(`
+            INSERT INTO failedlogs
+            (app_id, level, message, source, parsed_data, cluster_id)
+            VALUES ${insertQuery}
+        `);
+
+    } catch (e) {
+        console.error(
+            `[FAILED LOG INSERTION] Failed to insert ${temp} failed logs into db: ${e.message}`
+        );
+    }
+
+    finally{
+    failedLogs = [];
     return temp;
+    }
+
 };
 
 
@@ -146,26 +179,33 @@ export const handler = async (event) => {
         }
         const app_id = appResult.rows[0].app_id;
 
-        // 2. Fetch Messages from SQS and Populate dbLogs/failedLogs
+      
         const messagesToClear = await fetchData();
 
-        // 3. Insert Logs into Postgres
-        let x=await insertData(app_id,0);
+     
+        let x = await insertData(app_id, 0);
 
-        // 4. Retry failed logs
-        //let y=await handleFailedLogs(app_id);
-        
+     
+        let y = await handleFailedLogs(app_id, failedLogs);
 
-        // 5. Delete ALL processed messages (original logic)
+
+      
         await deleteMessages(messagesToClear);
 
+        console.log(`{
+                status: "Pipeline Cycle Complete",
+                logsFetched: messagesToClear.length,
+                logsInserted: ${x},
+                failedLogs: ${y}
+            }`)
+            
         return {
             statusCode: 200,
             body: JSON.stringify({
                 status: "Pipeline Cycle Complete",
                 logsFetched: messagesToClear.length,
-                logsInserted:x,
-                //failedLogs:y
+                logsInserted: x,
+                failedLogs: y
             }),
         };
     } catch (criticalErr) {
