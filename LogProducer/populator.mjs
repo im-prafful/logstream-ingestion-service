@@ -78,11 +78,17 @@ const getWeightedLevel = () => {
   const rand = Math.random();
 
   if (rand < 0.7) {
-    const benign = ["information", "debug"];
-    return benign[Math.floor(Math.random() * benign.length)];
+    if (rand < 0.5) {
+      return "warning"; // information
+    } else {
+      return "error"; // debug
+    }
   } else {
-    const critical = ["warning", "error"];
-    return critical[Math.floor(Math.random() * critical.length)];
+    if (rand > 0.7 && rand < 0.9) {
+      return "information"; // warning
+    } else {
+      return "debug"; // error
+    }
   }
 };
 
