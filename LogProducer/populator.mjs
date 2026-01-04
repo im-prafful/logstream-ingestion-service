@@ -79,15 +79,15 @@ const getWeightedLevel = () => {
 
   if (rand < 0.7) {
     if (rand < 0.5) {
-      return "warning"; // information
+      return "information";
     } else {
-      return "error"; // debug
+      return "debug";
     }
   } else {
     if (rand > 0.7 && rand < 0.9) {
-      return "information"; // warning
+      return "warning";
     } else {
-      return "debug"; // error
+      return "error";
     }
   }
 };
