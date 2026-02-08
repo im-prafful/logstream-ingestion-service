@@ -35,7 +35,7 @@ Parameters:
 Globals:
   Function:
     Runtime: nodejs20.x
-    MemorySize: 256
+    MemorySize: 512
     Timeout: 60 # Maximum cycle time for polling/insertion
 
 Resources:
@@ -82,6 +82,61 @@ Resources:
       Environment:
         Variables:
           SQS_QUEUE_URL: !Ref ExistingQueueUrl
+          DB_HOST: !Ref PostgresHost
+          DB_PORT: !Ref PostgresPort
+          DB_NAME: !Ref PostgresDatabase
+          DB_USER: !Ref PostgresUser
+          DB_PASSWORD: !Ref PostgresPassword
+
+  # --- 3. ML Batch Processor (Creates Batches & Invokes Bridge) ---
+  MLBatchProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ML_Batch_Processor/
+      Handler: app.handler  # Matches your export const createLogBatch in app.mjs
+      
+      # Policies:
+      # 1. Permission to Invoke the BridgeLambda
+      # 2. Permission to connect to the Database
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: 'lambda:InvokeFunction'
+            # Targeted strictly at BridgeLambda in the same account/region
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:BridgeLambda"
+        - Statement:
+            Effect: Allow
+            Action: 'rds:Connect'
+            Resource: '*'
+
+      # Environment Variables (Reusing the parameters you defined at the top)
+      Environment:
+        Variables:
+          DB_HOST: !Ref PostgresHost
+          DB_PORT: !Ref PostgresPort
+          DB_NAME: !Ref PostgresDatabase
+          DB_USER: !Ref PostgresUser
+          DB_PASSWORD: !Ref PostgresPassword
+
+  # --- 4. Bridge Lambda (Receives Batch Event from ML Processor) ---
+  BridgeLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: BridgeLambda  # CRITICAL: Naming it explicitly so the ARN reference works
+      CodeUri: BridgeLambda/
+      Handler: app.handler        # Assumes you export 'const handler = ...' in app.mjs
+      
+      # Policies:
+      # Permission to connect to the Database (since db.js is present)
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: 'rds:Connect'
+            Resource: '*'
+
+      # Environment Variables (Standardizing DB access across all functions)
+      Environment:
+        Variables:
           DB_HOST: !Ref PostgresHost
           DB_PORT: !Ref PostgresPort
           DB_NAME: !Ref PostgresDatabase

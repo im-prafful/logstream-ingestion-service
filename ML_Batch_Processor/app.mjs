@@ -1,9 +1,11 @@
-import express from "express";
-import query from "./db.js";
 
 import query from "./db.js";
+import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
-export const createLogBatch = async () => {
+
+const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+
+const createLogBatch = async () => {
   try {
     await query("BEGIN");
 
@@ -22,16 +24,16 @@ export const createLogBatch = async () => {
 
       logQuery = `
                 WITH t AS (
-                    SELECT logid
+                    SELECT log_id
                     FROM logs
                     WHERE level IN ('error','warning') 
                     AND cluster_id IS NULL
-                    ORDER BY logid ASC
+                    ORDER BY log_id ASC
                     LIMIT 500
                 )
                 SELECT 
-                    (SELECT min(logid) FROM t) as first_log_id,
-                    (SELECT max(logid) FROM t) as last_log_id,
+                    (SELECT min(log_id) FROM t) as first_log_id,
+                    (SELECT max(log_id) FROM t) as last_log_id,
                     count(*) as batch_size
                 FROM t
             `;
@@ -42,17 +44,17 @@ export const createLogBatch = async () => {
 
       logQuery = `
                 WITH t AS (
-                    SELECT logid
+                    SELECT log_id
                     FROM logs
                     WHERE level IN ('error','warning') 
                     AND cluster_id IS NULL
-                    AND logid > ${lastMaxId} 
-                    ORDER BY logid ASC
+                    AND log_id > ${lastMaxId} 
+                    ORDER BY log_id ASC
                     LIMIT 500
                 )
                 SELECT 
-                    (SELECT min(logid) FROM t) as first_log_id,
-                    (SELECT max(logid) FROM t) as last_log_id,
+                    (SELECT min(log_id) FROM t) as first_log_id,
+                    (SELECT max(log_id) FROM t) as last_log_id,
                     count(*) as batch_size
                 FROM t
             `;
@@ -77,6 +79,7 @@ export const createLogBatch = async () => {
     const insertQuery = `
             INSERT INTO batch_order (startlogid, endlogid, status)
             VALUES (${firstId}, ${lastId}, 'PROCESSING')
+            RETURNING batchid
         `;
 
     const insertRes = await query(insertQuery);
@@ -84,10 +87,40 @@ export const createLogBatch = async () => {
     await query("COMMIT");
 
     console.log(`Success! Batch ${insertRes.rows[0].batchid} created.`);
+
+    // --- NEW: FETCH AND INVOKE BRIDGE LOGIC ---
+    try{
+      const batchResult=await query(`select * from batch_order where status='processing' order by last_processed_timestamp limit 1`)
+
+      if(batchResult.rows.length>0){
+        let payload=batchResult.rows[0];
+
+        // Prepare the invocation command
+            const command = new InvokeCommand({
+                FunctionName: "BridgeLambda", // Ensure this matches the actual function name or ARN in AWS
+                InvocationType: "Event",      // "Event" = Asynchronous (Fire and Forget). Use "RequestResponse" if you need to wait for a reply.
+                Payload: JSON.stringify(payloadData), 
+            });
+
+            // 3. Send the command
+            console.log(`Invoking BridgeLambda with Batch ID: ${payloadData.batchid}...`);
+            await lambdaClient.send(command);
+            console.log("Invocation command sent.")
+      }
+    }catch(invokeError){
+      // Note: We catch this separately so we don't fail the whole function if just the trigger fails.
+      console.error("Database committed, but failed to invoke BridgeLambda:", invokeError);
+    }
     return insertRes.rows[0];
+
   } catch (e) {
     console.error("Error creating batch:", e);
     await query("ROLLBACK");
     throw e;
   }
 };
+
+
+export const handler = async (event) => {
+  return await createLogBatch(); 
+}
