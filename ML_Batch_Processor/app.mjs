@@ -1,9 +1,5 @@
-
+import { payloadfnc } from "./Bridge_Payload.js";
 import query from "./db.js";
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
-
-
-const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
 
 const createLogBatch = async () => {
   try {
@@ -78,7 +74,7 @@ const createLogBatch = async () => {
     // 4. Insert into Batch Order using direct string interpolation
     const insertQuery = `
             INSERT INTO batch_order (startlogid, endlogid, status)
-            VALUES (${firstId}, ${lastId}, 'PROCESSING')
+            VALUES (${firstId}, ${lastId}, 'PENDING')
             RETURNING batchid
         `;
 
@@ -88,31 +84,8 @@ const createLogBatch = async () => {
 
     console.log(`Success! Batch ${insertRes.rows[0].batchid} created.`);
 
-    // --- NEW: FETCH AND INVOKE BRIDGE LOGIC ---
-    try{
-      const batchResult=await query(`select * from batch_order where status='processing' order by last_processed_timestamp limit 1`)
-
-      if(batchResult.rows.length>0){
-        let payload=batchResult.rows[0];
-
-        // Prepare the invocation command
-            const command = new InvokeCommand({
-                FunctionName: "BridgeLambda", // Ensure this matches the actual function name or ARN in AWS
-                InvocationType: "Event",      // "Event" = Asynchronous (Fire and Forget). Use "RequestResponse" if you need to wait for a reply.
-                Payload: JSON.stringify(payloadData), 
-            });
-
-            // 3. Send the command
-            console.log(`Invoking BridgeLambda with Batch ID: ${payloadData.batchid}...`);
-            await lambdaClient.send(command);
-            console.log("Invocation command sent.")
-      }
-    }catch(invokeError){
-      // Note: We catch this separately so we don't fail the whole function if just the trigger fails.
-      console.error("Database committed, but failed to invoke BridgeLambda:", invokeError);
-    }
+    payloadfnc();
     return insertRes.rows[0];
-
   } catch (e) {
     console.error("Error creating batch:", e);
     await query("ROLLBACK");
@@ -120,7 +93,6 @@ const createLogBatch = async () => {
   }
 };
 
-
 export const handler = async (event) => {
-  return await createLogBatch(); 
-}
+  return await createLogBatch();
+};
