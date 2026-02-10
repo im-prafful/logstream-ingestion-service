@@ -96,37 +96,6 @@ Resources:
       Handler: app.handler  # Matches your export const createLogBatch in app.mjs
       
       # Policies:
-      # 1. Permission to Invoke the BridgeLambda
-      # 2. Permission to connect to the Database
-      Policies:
-        - Statement:
-            Effect: Allow
-            Action: 'lambda:InvokeFunction'
-            # Targeted strictly at BridgeLambda in the same account/region
-            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:BridgeLambda"
-        - Statement:
-            Effect: Allow
-            Action: 'rds:Connect'
-            Resource: '*'
-
-      # Environment Variables (Reusing the parameters you defined at the top)
-      Environment:
-        Variables:
-          DB_HOST: !Ref PostgresHost
-          DB_PORT: !Ref PostgresPort
-          DB_NAME: !Ref PostgresDatabase
-          DB_USER: !Ref PostgresUser
-          DB_PASSWORD: !Ref PostgresPassword
-
-  # --- 4. Bridge Lambda (Receives Batch Event from ML Processor) ---
-  BridgeLambdaFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      FunctionName: BridgeLambda  # CRITICAL: Naming it explicitly so the ARN reference works
-      CodeUri: BridgeLambda/
-      Handler: app.handler        # Assumes you export 'const handler = ...' in app.mjs
-      
-      # Policies:
       # 1. Permission to connect to the Database
       # 2. Permission to RUN ECS TASKS and PASS ROLES (Critical for Fargate)
       Policies:
@@ -143,7 +112,7 @@ Resources:
             Action: 'iam:PassRole'
             Resource: '*' # Required so Lambda can give the ECS Task permission to run
 
-      # Environment Variables (Standardizing DB access + ECS Config)
+      # Environment Variables (Reusing the parameters you defined at the top)
       Environment:
         Variables:
           DB_HOST: !Ref PostgresHost
