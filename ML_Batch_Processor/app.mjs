@@ -86,6 +86,8 @@ const createLogBatch = async () => {
 
     payloadfnc();
     return insertRes.rows[0];
+
+    
   } catch (e) {
     console.error("Error creating batch:", e);
     await query("ROLLBACK");

@@ -1,7 +1,7 @@
 import query from "./db.js";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 
-const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION });
+const lambdaClient = new LambdaClient();
 
 export const payloadfnc = async () => {
   try {
@@ -26,11 +26,8 @@ export const payloadfnc = async () => {
     );
 
     if (batchResult.rows.length > 0) {
-      // FIX: Define the data variable FIRST
-      const batchData = batchResult.rows[0];
 
-      // --- STEP 3: LOCK IT (Update status) ---
-      // We mark it PROCESSING immediately so the next 5-min run sees it as "Busy"
+      const batchData = batchResult.rows[0];
       await query(
         "UPDATE batch_order SET status='PROCESSING', last_processed_timestamp=NOW() WHERE batchid=$1",
         [batchData.batchid], // FIX: Using the correct variable name
