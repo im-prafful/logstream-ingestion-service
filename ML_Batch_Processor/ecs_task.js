@@ -34,10 +34,10 @@ export const launchEcsTask = async (batchid, startlogid, endlogid) => {
     try {
         const ecsResponse = await ecsClient.send(runTaskCommand);
         const taskArn = ecsResponse.tasks[0]?.taskArn;
-        console.log(`✅ ECS Task Launched: ${taskArn}`);
+        console.log(` ECS Task Launched: ${taskArn}`);
         return taskArn;
     } catch (launchError) {
-        console.error(`❌ Failed to launch ECS Task for Batch ${batchid}:`, launchError);
+        console.error(`Failed to launch ECS Task for Batch ${batchid}:`, launchError);
         throw launchError;
     }
 };

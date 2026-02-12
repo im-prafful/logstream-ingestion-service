@@ -32,7 +32,6 @@ export const payloadfnc = async () => {
                 "UPDATE batch_order SET status='PROCESSING', last_processed_timestamp=NOW() WHERE batchid=$1",
                 [batchData.batchid],
             );
-
             // --- STEP 4: TRIGGER ECS TASK VIA HELPER ---
             try {
                 await launchEcsTask(batchid, startlogid, endlogid);
