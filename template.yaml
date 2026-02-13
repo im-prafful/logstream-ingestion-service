@@ -35,7 +35,7 @@ Parameters:
 Globals:
   Function:
     Runtime: nodejs20.x
-    MemorySize: 256
+    MemorySize: 512
     Timeout: 60 # Maximum cycle time for polling/insertion
 
 Resources:
@@ -87,3 +87,43 @@ Resources:
           DB_NAME: !Ref PostgresDatabase
           DB_USER: !Ref PostgresUser
           DB_PASSWORD: !Ref PostgresPassword
+
+  # --- 3. ML Batch Processor (Creates Batches & Invokes Bridge) ---
+  MLBatchProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: ML_Batch_Processor/
+      Handler: app.handler  # Matches your export const createLogBatch in app.mjs
+      
+      # Policies:
+      # 1. Permission to connect to the Database
+      # 2. Permission to RUN ECS TASKS and PASS ROLES (Critical for Fargate)
+      Policies:
+        - Statement:
+            Effect: Allow
+            Action: 'rds:Connect'
+            Resource: '*'
+        - Statement:
+            Effect: Allow
+            Action: 'ecs:RunTask'
+            Resource: '*' # Allows running any task (you can restrict this to the specific ARN if you want strict security)
+        - Statement:
+            Effect: Allow
+            Action: 'iam:PassRole'
+            Resource: '*' # Required so Lambda can give the ECS Task permission to run
+
+      # Environment Variables (Reusing the parameters you defined at the top)
+      Environment:
+        Variables:
+          DB_HOST: !Ref PostgresHost
+          DB_PORT: !Ref PostgresPort
+          DB_NAME: !Ref PostgresDatabase
+          DB_USER: !Ref PostgresUser
+          DB_PASSWORD: !Ref PostgresPassword
+          # --- ECS CONFIGURATION ---
+          ECS_CLUSTER_NAME: "logstream-ecs-cluster"
+          ECS_TASK_DEF_ARN: "logstream-task-def" # Uses 'latest' active revision automatically
+          ECS_SUBNET_IDS: "subnet-09ac7289a9fd7299c,subnet-0f9696405ae6c0502"
+          ECS_CONTAINER_NAME: "logstream-processing-container"
+          # CRITICAL: Fargate REQUIRES a Security Group. 
+          ECS_SEC_GROUP_IDS: "sg-05250be6d9b7e2618"
