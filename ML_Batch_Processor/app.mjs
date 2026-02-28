@@ -84,7 +84,7 @@ const createLogBatch = async () => {
 
     console.log(`Success! Batch ${insertRes.rows[0].batchid} created.`);
 
-    payloadfnc();
+    await payloadfnc();
     return insertRes.rows[0];
 
 
