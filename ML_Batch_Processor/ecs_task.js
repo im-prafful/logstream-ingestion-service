@@ -18,6 +18,8 @@ export const launchEcsTask = async (batchid, startlogid, endlogid) => {
             }
         },
         overrides: {
+            cpu: "4096",
+            memory: "8192",
             containerOverrides: [
                 {
                     name: process.env.ECS_CONTAINER_NAME,
