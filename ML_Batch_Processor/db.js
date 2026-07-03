@@ -25,7 +25,7 @@ const query = async (text, params) => {
       process.env.DB_PORT,
     );
 
-    const result = await pool.query(text);
+    const result = await pool.query(text, params);
     return result;
   } catch (err) {
     console.error("❌ Error executing query:", err.message);
