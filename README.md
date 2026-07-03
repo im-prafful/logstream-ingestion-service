@@ -25,6 +25,12 @@ High-level pipeline:
 
 This repo handles everything up to the point where the processing-service container takes over.
 
+## Repo Snapshot
+
+The image below shows the current top-level layout of the ingestion service:
+
+![Ingestion service repo snapshot](docs/diagrams/repo-snapshot.svg)
+
 ## Architecture At A Glance
 
 There are 3 main parts in this repo:
@@ -284,5 +290,4 @@ This README is meant to help someone opening the repo quickly understand:
 - how logs move from producer to DB
 - how batches are created
 - how ECS handoff works
-
 
