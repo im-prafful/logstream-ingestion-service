@@ -6,8 +6,8 @@ export const launchEcsTask = async (batchid, startlogid, endlogid) => {
     console.log(`Processing Batch ${batchid}: Launching ECS Task for logs ${startlogid} to ${endlogid}...`);
 
     const runTaskCommand = new RunTaskCommand({
-        cluster: process.env.ECS_CLUSTER_NAME,
-        taskDefinition: process.env.ECS_TASK_DEF_ARN,
+        cluster: process.env.ECS_CLUSTER_NAME,//created via the aws console
+        taskDefinition: process.env.ECS_TASK_DEF_ARN,//created via the aws console
         launchType: "FARGATE",
         count: 1,
         networkConfiguration: {
